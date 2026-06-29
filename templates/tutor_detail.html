@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+{% block title %}{{ tutor.name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <p style="font-size:0.82rem; color:var(--muted); margin-bottom:0.3rem;">
+        <a href="/" style="color:var(--muted); text-decoration:none;">Dashboard</a> › {{ tutor.name }}
+      </p>
+      <h1>{{ tutor.name }}</h1>
+      <p>{{ tutor.subject }} · {{ tutor.level }} · <code style="font-size:0.82rem;">{{ tutor.id }}</code></p>
+    </div>
+    <div style="display:flex; gap:0.5rem; align-items:flex-start; flex-wrap:wrap;">
+      {% if tutor.cv_filename %}
+      <a href="/cv/{{ tutor.cv_filename }}" class="btn btn-outline btn-sm">⬇ Download CV</a>
+      {% endif %}
+      {% if tutor.profile_live %}
+      <span class="badge badge-active" style="padding: 0.5rem 1rem; font-size: 0.85rem;">✓ PROFILE LIVE</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Pipeline Progress -->
+  <div class="pipeline-steps">
+    {% set stage_names = ['Applied', 'Screening', 'Interview', 'Contract Signing', 'Training', 'Active'] %}
+    {% for s, label, title in stages %}
+    <div class="step
+      {% if tutor.stage > s %}done
+      {% elif tutor.stage == s %}current
+      {% endif %}">
+      <span class="step-num">{{ s }}</span>
+      {{ title }}
+    </div>
+    {% endfor %}
+  </div>
+
+  <div style="display: grid; grid-template-columns: 1fr 340px; gap: 1.5rem; align-items: start;">
+
+    <!-- LEFT COLUMN -->
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+
+      <!-- Tutor Info -->
+      <div class="card">
+        <p class="section-title">Tutor Information</p>
+        <div class="info-grid">
+          <div class="info-item"><label>Email</label><p>{{ tutor.email }}</p></div>
+          <div class="info-item"><label>Phone</label><p>{{ tutor.phone or '—' }}</p></div>
+          <div class="info-item"><label>Subject</label><p>{{ tutor.subject }}</p></div>
+          <div class="info-item"><label>Level</label><p>{{ tutor.level }}</p></div>
+          <div class="info-item"><label>Experience</label><p>{{ tutor.experience or '—' }}</p></div>
+          <div class="info-item"><label>Applied</label><p>{{ tutor.created_at[:10] }}</p></div>
+        </div>
+        {% if tutor.about %}
+        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+          <p style="font-size:0.78rem; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.4rem;">About</p>
+          <p style="font-size:0.9rem;">{{ tutor.about }}</p>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Stage 2: Screening -->
+      <div class="card">
+        <p class="section-title">Stage 2 — Auto Screening</p>
+        {% if tutor.screening_result == 'Passed' %}
+        <div class="alert alert-success">✓ Screening passed — tutor meets basic requirements</div>
+        {% elif tutor.screening_result == 'Failed' %}
+        <div class="alert alert-error">✗ Screening failed — see notes below</div>
+        {% endif %}
+        {% if tutor.notes %}
+        <p style="font-size: 0.85rem; color: var(--muted);">{{ tutor.notes }}</p>
+        {% endif %}
+      </div>
+
+      <!-- Stage 3: Interview -->
+      <div class="card">
+        <p class="section-title">Stage 3 — Interview</p>
+        {% if tutor.interview_result %}
+          {% if tutor.interview_result == 'Passed' %}
+          <div class="alert alert-success">✓ Interview passed on {{ tutor.interview_date }}</div>
+          {% else %}
+          <div class="alert alert-error">✗ Interview failed on {{ tutor.interview_date }}</div>
+          {% endif %}
+          {% if tutor.interview_notes %}
+          <p style="font-size:0.85rem; color:var(--muted); margin-top:0.5rem;">{{ tutor.interview_notes }}</p>
+          {% endif %}
+        {% elif tutor.screening_result == 'Passed' %}
+        <form method="post" action="/tutor/{{ tutor.id }}/interview">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Interview Date</label>
+              <input type="date" name="interview_date" required>
+            </div>
+            <div class="form-group">
+              <label>Outcome</label>
+              <select name="interview_result" required>
+                <option value="">— Select —</option>
+                <option value="Passed">Passed</option>
+                <option value="Failed">Failed</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Interview Notes</label>
+            <textarea name="interview_notes" rows="3" placeholder="Comments from interviewer…"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary">Save Interview Result</button>
+        </form>
+        {% else %}
+        <p style="color:var(--muted); font-size:0.875rem;">Waiting for screening to pass before scheduling interview.</p>
+        {% endif %}
+      </div>
+
+      <!-- Stage 4: Contract -->
+      <div class="card">
+        <p class="section-title">Stage 4 — Contract Signing</p>
+        {% if tutor.interview_result == 'Passed' %}
+          <div style="display:flex; gap:1rem; flex-wrap:wrap; align-items:center; margin-bottom:0.75rem;">
+            <span>Contract sent:
+              {% if tutor.contract_sent %}<span class="badge badge-passed">Yes</span>
+              {% else %}<span class="badge badge-failed">No</span>{% endif %}
+            </span>
+            <span>Contract signed:
+              {% if tutor.contract_signed %}<span class="badge badge-passed">Yes</span>
+              {% else %}<span class="badge badge-failed">No</span>{% endif %}
+            </span>
+          </div>
+          {% if not tutor.contract_sent %}
+          <form method="post" action="/tutor/{{ tutor.id }}/contract" style="display:inline;">
+            <input type="hidden" name="action" value="sent">
+            <button class="btn btn-blue btn-sm">Mark Contract as Sent</button>
+          </form>
+          {% endif %}
+          {% if tutor.contract_sent and not tutor.contract_signed %}
+          <form method="post" action="/tutor/{{ tutor.id }}/contract" style="display:inline; margin-left:0.5rem;">
+            <input type="hidden" name="action" value="signed">
+            <button class="btn btn-teal btn-sm">Mark Contract as Signed →</button>
+          </form>
+          {% endif %}
+          {% if tutor.contract_signed %}
+          <div class="alert alert-success" style="margin-top:0.5rem;">✓ Contract signed — moved to Training</div>
+          {% endif %}
+        {% else %}
+        <p style="color:var(--muted); font-size:0.875rem;">Waiting for interview to pass.</p>
+        {% endif %}
+      </div>
+
+      <!-- Stage 5: Training -->
+      <div class="card">
+        <p class="section-title">Stage 5 — Training</p>
+        {% if tutor.contract_signed %}
+          {% if tutor.training_done %}
+          <div class="alert alert-success">✓ Training completed — tutor ready for activation</div>
+          {% else %}
+          <p style="font-size:0.875rem; margin-bottom:1rem; color:var(--muted);">Tutor is currently completing onboarding training modules.</p>
+          <form method="post" action="/tutor/{{ tutor.id }}/training">
+            <input type="hidden" name="action" value="complete">
+            <button class="btn btn-gold">Mark Training Complete →</button>
+          </form>
+          {% endif %}
+        {% else %}
+        <p style="color:var(--muted); font-size:0.875rem;">Waiting for contract to be signed.</p>
+        {% endif %}
+      </div>
+
+      <!-- Stage 6: Activation -->
+      <div class="card">
+        <p class="section-title">Stage 6 — Activation</p>
+        {% if tutor.training_done %}
+          {% if tutor.profile_live %}
+          <div class="alert alert-success" style="font-size:1rem;">
+            🎉 <strong>Profile is LIVE</strong> — tutor is now active on the platform
+          </div>
+          {% else %}
+          <p style="font-size:0.875rem; margin-bottom:1rem; color:var(--muted);">All steps complete. Ready to go live.</p>
+          <form method="post" action="/tutor/{{ tutor.id }}/activate">
+            <button class="btn btn-teal">🚀 Activate Profile → Go Live</button>
+          </form>
+          {% endif %}
+        {% else %}
+        <p style="color:var(--muted); font-size:0.875rem;">Waiting for training to be completed.</p>
+        {% endif %}
+      </div>
+
+    </div><!-- /left -->
+
+    <!-- RIGHT COLUMN -->
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+
+      <!-- Status Card -->
+      <div class="card" style="background: var(--navy); color: #fff; border-color: var(--navy);">
+        <p style="font-size:0.75rem; opacity:0.6; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:0.5rem;">Current Stage</p>
+        <p style="font-size: 1.4rem; font-weight: 700;">{{ tutor.stage_label }}</p>
+        <p style="font-size: 0.8rem; opacity: 0.65; margin-top: 0.3rem;">Step {{ tutor.stage }} of 6</p>
+        {% if tutor.profile_live %}
+        <p style="margin-top: 0.75rem; font-size: 0.85rem; background: rgba(255,255,255,0.1); border-radius: 6px; padding: 0.5rem 0.75rem;">✓ Profile is Live</p>
+        {% endif %}
+      </div>
+
+      <!-- Notes -->
+      <div class="card">
+        <p class="section-title">Admin Notes</p>
+        <form method="post" action="/tutor/{{ tutor.id }}/notes">
+          <div class="form-group">
+            <textarea name="notes" rows="5" placeholder="Internal notes about this tutor…">{{ tutor.notes or '' }}</textarea>
+          </div>
+          <button type="submit" class="btn btn-outline btn-sm">Save Notes</button>
+        </form>
+      </div>
+
+      <!-- Activity Log -->
+      <div class="card">
+        <p class="section-title">Activity Log</p>
+        {% if activity %}
+        <div>
+          {% for a in activity %}
+          <div class="activity-item">
+            <span class="activity-time">{{ a.created_at[:16] }}</span>
+            <div>
+              <span class="activity-text">{{ a.action }}</span>
+              {% if a.detail %}
+              <p style="font-size:0.78rem; color:var(--muted); margin-top:0.15rem;">{{ a.detail }}</p>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p style="color:var(--muted); font-size:0.875rem;">No activity yet.</p>
+        {% endif %}
+      </div>
+
+    </div><!-- /right -->
+  </div><!-- /grid -->
+</div>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Application Submitted{% endblock %}
+{% block content %}
+<div class="container" style="max-width: 600px; text-align: center; padding-top: 4rem;">
+  {% if result == 'Passed' %}
+    <div style="font-size: 4rem; margin-bottom: 1rem;">✅</div>
+    <h1 style="color: var(--teal); margin-bottom: 0.5rem;">Application Received!</h1>
+    <p style="color: var(--muted); margin-bottom: 1.5rem;">Your application passed our initial screening. Our team will be in touch shortly to schedule an interview.</p>
+    <div class="alert alert-success">
+      Your application ID is <strong>{{ tutor_id }}</strong> — keep this for your records.
+    </div>
+  {% else %}
+    <div style="font-size: 4rem; margin-bottom: 1rem;">⚠️</div>
+    <h1 style="color: var(--gold); margin-bottom: 0.5rem;">Application Received</h1>
+    <p style="color: var(--muted); margin-bottom: 1.5rem;">We received your application but it did not pass our initial automated screening. Our admin team will review it manually and contact you if appropriate.</p>
+    <div class="alert alert-warning">
+      Your application ID is <strong>{{ tutor_id }}</strong>
+    </div>
+  {% endif %}
+  <div style="margin-top: 2rem;">
+    <a href="/" class="btn btn-primary">Back to Dashboard</a>
+    <a href="/apply" class="btn btn-outline" style="margin-left: 0.5rem;">New Application</a>
+  </div>
+</div>
+{% endblock %}

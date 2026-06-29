@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  <div class="page-header">
+    <div>
+      <h1>Tutor Pipeline</h1>
+      <p>Track every tutor from application to activation</p>
+    </div>
+    <a href="/apply" class="btn btn-teal">+ New Application</a>
+  </div>
+
+  <!-- Stage Stats -->
+  <div class="stats">
+    <div class="stat-card">
+      <div class="num">{{ counts.get('all', 0) }}</div>
+      <div class="lbl">Total</div>
+    </div>
+    {% for stage_num, label, title in stages %}
+    <div class="stat-card {% if label == 'Active' %}highlight{% endif %}">
+      <div class="num">{{ counts.get(label, 0) }}</div>
+      <div class="lbl">{{ title }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Filter Tabs -->
+  <div class="filter-tabs">
+    <a href="/?stage=all{% if search %}&search={{ search }}{% endif %}"
+       class="filter-tab {% if current_stage == 'all' %}active{% endif %}">All ({{ counts.get('all', 0) }})</a>
+    {% for stage_num, label, title in stages %}
+    <a href="/?stage={{ label }}{% if search %}&search={{ search }}{% endif %}"
+       class="filter-tab {% if current_stage == label %}active{% endif %}">
+      {{ title }} ({{ counts.get(label, 0) }})
+    </a>
+    {% endfor %}
+  </div>
+
+  <!-- Search -->
+  <form method="get" action="/" class="search-bar">
+    <input type="hidden" name="stage" value="{{ current_stage }}">
+    <input type="text" name="search" value="{{ search }}" placeholder="Search by name, email or subject…">
+    <button type="submit" class="btn btn-primary">Search</button>
+    {% if search %}<a href="/?stage={{ current_stage }}" class="btn btn-outline">Clear</a>{% endif %}
+  </form>
+
+  <!-- Tutors Table -->
+  <div class="card" style="padding: 0; overflow: hidden;">
+    {% if tutors %}
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Subject</th>
+          <th>Level</th>
+          <th>Stage</th>
+          <th>Screening</th>
+          <th>Applied</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in tutors %}
+        <tr>
+          <td><code style="font-size:0.8rem; color: var(--muted);">{{ t.id }}</code></td>
+          <td><strong>{{ t.name }}</strong><br><span style="font-size:0.78rem; color:var(--muted);">{{ t.email }}</span></td>
+          <td>{{ t.subject }}</td>
+          <td>{{ t.level }}</td>
+          <td>
+            {% set sl = t.stage_label %}
+            {% if sl == 'Applied' %}<span class="badge badge-applied">Applied</span>
+            {% elif sl == 'Screening' %}<span class="badge badge-screening">Screening</span>
+            {% elif sl == 'Interview' %}<span class="badge badge-interview">Interview</span>
+            {% elif sl == 'Contract Signing' %}<span class="badge badge-contract">Contract</span>
+            {% elif sl == 'Training' %}<span class="badge badge-training">Training</span>
+            {% elif sl == 'Active' %}<span class="badge badge-active">✓ Active</span>
+            {% else %}<span class="badge">{{ sl }}</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if t.screening_result == 'Passed' %}<span class="badge badge-passed">Passed</span>
+            {% elif t.screening_result == 'Failed' %}<span class="badge badge-failed">Failed</span>
+            {% else %}—{% endif %}
+          </td>
+          <td style="color:var(--muted); font-size:0.8rem;">{{ t.created_at[:10] }}</td>
+          <td><a href="/tutor/{{ t.id }}" class="btn btn-outline btn-sm">View →</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div style="padding: 3rem; text-align: center; color: var(--muted);">
+      <div style="font-size: 2rem; margin-bottom: 0.5rem;">📋</div>
+      <p>No tutors found. <a href="/apply" style="color: var(--navy); font-weight: 600;">Add the first application →</a></p>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
