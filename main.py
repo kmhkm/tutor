@@ -11,6 +11,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import os, shutil, uuid, sqlite3
+from types import SimpleNamespace
 from datetime import datetime
 from pathlib import Path
 
@@ -87,8 +88,8 @@ class DB:
         if row is None:
             return None
         if isinstance(row, dict):
-            return row
-        return dict(row)             # sqlite3.Row → dict
+            return SimpleNamespace(**row)
+        return SimpleNamespace(**dict(row))   # sqlite3.Row → dot-accessible object
 
     @classmethod
     def execute(cls, sql: str, params: tuple = ()):
@@ -116,7 +117,7 @@ class DB:
                 cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
                 cur.execute(sql, params)
                 row = cur.fetchone()
-                return dict(row) if row else None
+                return SimpleNamespace(**dict(row)) if row else None
             else:
                 row = conn.execute(sql, params).fetchone()
                 return cls._to_dict(row)
@@ -132,10 +133,10 @@ class DB:
             if USE_POSTGRES:
                 cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
                 cur.execute(sql, params)
-                return [dict(r) for r in cur.fetchall()]
+                return [SimpleNamespace(**dict(r)) for r in cur.fetchall()]
             else:
                 rows = conn.execute(sql, params).fetchall()
-                return [cls._to_dict(r) for r in rows]
+                return [cls._to_dict(r) for r in rows]  # returns SimpleNamespace list
         finally:
             conn.close()
 
