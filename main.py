@@ -288,9 +288,9 @@ async def dashboard(request: Request, stage: str = "all", search: str = ""):
     counts = {}
     for _, label, _ in STAGES:
         row = DB.fetchone("SELECT COUNT(*) AS c FROM tutors WHERE stage_label=?", (label,))
-        counts[label] = row["c"] if row else 0
+        counts[label] = row.c if row else 0
     row = DB.fetchone("SELECT COUNT(*) AS c FROM tutors", ())
-    counts["all"] = row["c"] if row else 0
+    counts["all"] = row.c if row else 0
 
     return templates.TemplateResponse("dashboard.html", {
         "request":       request,
